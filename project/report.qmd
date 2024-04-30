@@ -1,0 +1,466 @@
+---
+title: "**Born Sick**"
+subtitle: "*Testing Infants for HIV*"
+author: "*Simon Neil Daly*"
+date: "*2024-03-29*"
+format: 
+  html:
+    theme: litera
+    backgroundcolor: white
+toc: true
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#|label: setup
+#|include: false
+
+# libraries
+library(tidyverse)
+library(plotly)
+library(maps)
+library(ggtext)
+options(scipen = 999)
+
+# data
+unicef_metadata <- read_csv("unicef_metadata_a2.csv")
+unicef_indicator <- read_csv("unicef_indicator_2.csv")
+
+unicef_metadata_2 <- na.omit(unicef_metadata)
+
+# transformations
+unicef_data <- full_join(unicef_metadata_2, unicef_indicator, 
+                       by = c("country" = "country", 
+                              "alpha_2_code" = "alpha_2_code", 
+                              "alpha_3_code" = "alpha_3_code", 
+                              "numeric_code" = "numeric_code",
+                              "year" = "time_period"))
+```
+
+![](images/UNICEF_Logo.png)
+
+## **Introduction**
+The purpose of this report is to thoroughly examine the ***UNICEF Indicator*** detailing the reported number of **Infants** born to a pregnant woman living with [**HIV**]{style="color:red;"} who received a virological test for HIV within the first **2 months since birth**. 
+This report aims to identify: 
+
+1. Which Countries possess the **Highest** number of recorded observed cases.
+2. What effect this has on the **Life Expectancy** of a given examined country.
+3. Do key factors such as a country’s **GNI**, and **GDP per Capita** have any bearing on the number of observed cases in the time period **2011-2021**. 
+By identifying this data, this report hopes to provide vital insights to world health groups, and government bodies seeking to better understand where to allocate resources to combat the threat of **HIV**.
+
+## **Global Spread of Cases in 2021**
+To illustrate the number of infants tested for HIV across the various examined countries, this report will focus on 2021.
+
+```{r}
+#| fig-cap: "*This map chart depicts the number of observed cases of children tested for HIV within their first two months of life across the world in 2021, highlighting a particularly high density of observed cases within the borders of the continent of Africa. The Socio-economic climate of Africa likely plays a key role in the density of cases.*"
+
+map_chart_1 <- map_data("world")
+
+map_plot_1 <- unicef_data %>%
+  filter(year == 2021) %>%
+  full_join(map_chart_1, by = c("country" = "region")) %>%
+  ggplot(aes(long, lat, group = group, fill = obs_value,
+             text = paste(country, "has", obs_value, "Observed Cases")))+ 
+  scale_fill_gradient(name = "Number of Observed Cases", 
+                      low = "blue", high = "red", na.value="#05f244") +
+  geom_polygon(color = "black") +
+  labs(title = "Number of Observed Cases per Country in 2021", 
+       subtitle = "Countries in Grey lack Data or have no Observed Cases", 
+       caption = "Source: Unicef Indicator") +
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(),
+      axis.ticks = element_blank(), axis.title.x = element_blank(),
+      axis.title.y = element_blank(), panel.grid = element_blank(),
+      plot.title = element_text(hjust = 0.5, 
+                                face = "bold", size = "14", 
+                                family = "NimbusSan"), 
+      plot.subtitle = element_text(hjust = 0.2, face = "italic", 
+                                   size = "10", family = "NimbusSan"), 
+      plot.caption = element_text(face = "italic"),
+      panel.background = element_rect(fill = "#90e9ff"),
+      text = element_text(family = "serif"),
+      panel.border = element_rect(colour = "black", fill=NA,  
+                                  linewidth = "1"))
+
+ggplotly(map_plot_1, tooltip = c("text"))
+
+```
+
+The map charts clearly illustrates which of the examined countries have the **highest severity** of observed cases, with the **vast majority** of observed cases falling within the boundaries of the continent of ***Africa*** with scattered cases also recorded in ***Central America*** and ***Southeast Asia***. As can be seen in the first graph, ***South Africa*** has a significant number of recorded cases with [**271,000**]{style="color:red;"} recorded in **2021** alone, over **three** times that of the next highest value of [**83,000 cases**]{style="color:red;"} in ***Mozambique***. The number of recorded cases in ***South Africa*** in **2021** represents **0.45%** of the total population.
+
+```{r}
+#| fig-cap: "*The map chart depicts the number of observed cases of children tested for HIV within their first two months of life across the world in 2021, while excluding South Africa with the aim of highlighting a more accurate dispersion of observed cases around the globe.*"
+
+map_chart_2 <- map_data("world")
+
+map_plot_2 <- unicef_data %>%
+  filter(year == 2021, alpha_2_code != "ZA") %>%
+  full_join(map_chart_2, by = c("country" = "region")) %>%
+  ggplot(aes(x = long, y = lat, group = group, fill = obs_value,
+             text = paste(country, "has", obs_value, "Observed Cases"))) + 
+  scale_fill_gradient(name = "Number of Observed Cases", 
+                      low = "blue", high = "red", na.value = "#05f244") +
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.ticks = element_blank(), axis.title.x = element_blank(),
+        axis.title.y = element_blank(), rect = element_blank(),
+        text = element_text(family = "serif")) +
+  geom_polygon(color = "black") +
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank(),
+        axis.ticks = element_blank(), axis.title.x = element_blank(),
+        axis.title.y = element_blank(), panel.grid = element_blank(),
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold", size = "14", 
+                                  family = "NimbusSan"), 
+        plot.subtitle = element_text(hjust = 0.2, face = "italic", 
+                                     size = "12", family = "NimbusSan"), 
+        plot.caption = element_text(face = "italic"),
+        panel.background = element_rect(fill = "#90e9ff"),
+        text = element_text(family = "serif"),
+        panel.border = element_rect(colour = "black", fill=NA,  
+                                    linewidth = "1")) +
+  labs(title = "Number of Observed Cases per Country (Excluding South Africa) in 2021",
+       subtitle = "Countries in Grey lack Data or have no Observed Cases", 
+       caption = "Source: Unicef Indicator")
+ 
+ggplotly(map_plot_2, tooltip = c("text"))
+
+```
+
+As ***South Africa*** is an outlier which **distorts** the distribution of cases the second map graph **excludes** it to display a more **accurate distribution**, but the data is still skewed due to the number of countries with **less** than [**one thousand cases**]{style="color:red;"} and the number with [**over 30,000 observed cases**]{style="color:red;"}. It can be determined that ***South Africa*** is the unfortunate nation to suffer the **Highest Volume** of observed cases. The HIV epidemic in South Africa is well documented with the rural community of ***[Vulindela](https://www.youtube.com/watch?v=xVWGsKjjTcA){style="color:green;"}*** in the province of ***KwaZulu-Natal, South Africa*** possessing one of the **highest HIV infection** rates in the world. 
+
+***African states*** tend to have significantly **higher** numbers of **Infants** tested for [**HIV**]{style="color:red;"} than any other continent due to a number of contributing factors, though exact factors will vary by nation, and demographic group (Nyindo 2005).
+
+* Inadequate Medical Care
+  + Lack of Proper Facilities.
+  + Uncertainty of safety of blood intended for transfusion.
+* Economic & Societal Factors
+	+ High levels of Poverty.
+	+ Famine.
+	+ Low status of women in society.
+	+ High Levels of Illiteracy.
+	+ Resistance to Change.
+- Political Factors
+  + Corruption of Political Bodies.
+  + Internal conflicts & Refugee Crises.
+
+Steps have been taken to combat many of these factors which are explored later in this report.
+
+The table below depicts the **top 7 countries** with the **Highest** recorded numbers of **Infants** tested in **2021**.
+
+| Country | Observed Cases |
+|:-----|---------|
+|   South Africa |  271,000  |
+|  Mozambique |  83,000 |
+|    Uganda |    65,600 |
+|    Tanzania |    40,900 |
+|    Kenya |    37,600 |
+|    Zimbabwe |    54,300 |
+|    Zambia |    39,300 |
+
+## **Percentage of Infants Tested**
+
+```{r}
+#| fig-cap: "*This bar chart seeks to provide a snapshot of the number of infants tested for HIV as a percentage of a Country’s total population. This will aid policy makers and health bodies in determining the severity of cases and whether more resources needs to be allocated for testing.*"
+
+bar_plot_1 <- unicef_data %>%
+  filter(year == 2021, obs_value > 1000) %>%
+  group_by(country, year) %>%
+  ggplot(aes(reorder(country, obs_value/pop_total * 100),
+             obs_value/pop_total * 100, fill = obs_value, 
+             text = paste(country, "had", obs_value, "Observed Cases,",
+                          obs_value/pop_total * 100, "percent of the Total Population have been tested"))) +
+  scale_fill_gradient(name = "Number of Observed Cases", low = "blue", high =
+                        "red", na.value = "grey") +
+  
+  scale_y_continuous(expand = c(0,0), 
+                     breaks = c(0.0, 0.1, 0.2, 0.3, 0.4, 0.5)) +
+  theme(rect = element_blank(), 
+        text = element_text(family = "serif"),
+        axis.ticks.x = element_blank(), axis.text.x = element_blank(), 
+        axis.text.y = element_text(size = "11"),
+        axis.title.x = element_text(size = "15", face = "italic", family = "NimbusSan"),
+        axis.title.y = element_text(size = "15", face = "italic", family = "NimbusSan"), 
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold", size = "14", 
+                                  family = "NimbusSan"), 
+        plot.caption = element_text(face = "italic"),
+        panel.border = element_rect(colour = "black", fill=NA,
+                                    linewidth = "2"),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(color = "grey")) +
+  labs(title = "Observed Cases (Over 1000) as % of a Country’s Total Population in 2021",
+       x = "Country", y = "Cases as % of Total Population",
+       caption = "Source: Unicef Indicator") +
+  geom_col(color = "black", width = 1)
+  
+ggplotly(bar_plot_1, tooltip = c("text"))
+
+```
+
+The bar chart seen above, lists all of the examined countries with recorded Observed Cases and displays the recorded cases as a **Percentage** of a country’s **Total Population.** This allows us to determine which countries have the **Highest** overall percentage of **Infants** who have been tested for [**HIV**]{style="color:red;"}. As can be seen in the graph [**0.45 percent**]{style="color:red;"} of ***South Africa’s population*** (infants under the age of 2 months) have been tested for [**HIV**]{style="color:red;"} within the examined time period. The next **Highest** percentage is ***Swaziland*** at [**0.34%**]{style="color:red;"}.
+
+::: columns
+::: {.column width="30%"}
+
+![](images/unaids.png)
+:::
+
+::: {.column width="60%"}
+
+HIV testing is a vital step in stopping the spread of HIV. Many countries have adopted WHO-recommended strategies for testing (Fajardo et al 2023) and with support from UNAIDS who provide vital strategic direction, advocacy, coordination, and technical support, governments around the world, the private sector, and communities can all work in tandem to provide accurate and affordable testing (UNAIDS 2024).
+
+:::
+:::
+
+## **Key Factors and their Influence on the Number of Cases 2014-2021**
+
+### ***Influence on Life Expectancy***
+
+```{r}
+#| fig-cap: "*This line graph provides a look at how the life expectancy of nations with observed cases have evolved overtime. The number of observed cases in a given year can also be seen illustrating how the number of infants tested fluctuate from one year to the next.*"
+
+timeseries_plot_1 <- filter(unicef_data, year > 2010, 
+                                 year < 2022, obs_value >1) %>%
+  ggplot() +
+  aes(year, Life_exp, group = country, colour = continent,
+      text = paste(country, "has a Life Expectancy of", Life_exp, 
+                   "and", obs_value, "Observed Values in", year)) +
+  geom_line() +
+  scale_x_continuous(breaks = c(2010, 2011, 2012, 2013, 2014, 2015, 2016,
+                                2017, 2018, 2019, 2020, 2021)) +
+  scale_colour_manual(values = c("#7D3C98", "#229954", 
+                                 "#C3173E", "#3498DB", "#20B2AA")) +
+  theme(text = element_text(family = "serif"),
+        axis.text.x = element_text(size = "11"), 
+        axis.text.y = element_text(size = "11"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = "15", face = "italic", family = "NimbusSan"), 
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold", size = "14", 
+                                  family = "NimbusSan"), 
+        plot.caption = element_text(face = "italic"),
+        panel.border = element_rect(colour = "black", fill=NA,
+                                    linewidth = "2"),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(color = "grey"),
+        strip.text = element_text(face = "bold", 
+                                  family = "NimbusSan", size ="15"),
+        strip.background = element_rect(fill = "white")) +  
+    labs(title = "Life Expectancy by Country with Observable Cases 2011-2021",
+       x = "Year", y = "Life Expectancy (at birth)",
+       caption = "Source: Unicef Indicator")
+
+ggplotly(timeseries_plot_1, tooltip = c("text"))
+```
+
+With the **Highest Proportion** of Observed Cases being localised to ***Africa***, this report aims to examine to what affect, if any, does A, the number of Observed Cases affect **Life Expectancy** of an examined country, and B how does a countries **GDP per Capita**, and **GNI** affect the number of cases reported. Let’s first examine the effect on **Life Expectancy**. The line graph examines how the **Life Expectancy** of countries with Observed Cases, have changed over the years.
+
+As can be seen in the graph ***Africa*** has the most dispersed level of **Life Expectancy** across the various examined states indicating a clear difference in between ***North African*** nations which tend towards **lower cases** and **higher life expectancies** compared to their more southern neighbours, and between ***Africa*** and the other examined continents. On a global scale ***Sub-Saharan states*** experience exhibit much **lower life expectancies** overall and significantly **higher case volumes** illustrating that this is a key area to focus on in the fight against [**HIV**]{style="color:red;"}.
+
+```{r}
+#| fig-cap: "*As this graph illustrates countries with high volume of infants tested for HIV tend towards middling Life Expectancies. HIV is well-known to be a very dangerous virus and it causes significant loss of life in many countries, which is a leading contributor to the lower life expectancy experienced by the countries depicted in the graph.*"
+
+scatter_plot_1 <- filter(unicef_data, year > 2015, year < 2022) %>%
+  ggplot(aes(Life_exp, obs_value, 
+      fill = obs_value, size = pop_total, 
+      text = paste(country, "has a Life Expectiancy of", 
+                   Life_exp, "and", obs_value, "Observed Cases"))) +
+    geom_point(shape = 4, size = 5, alpha = 0.5) +
+  facet_wrap(~year) +
+  scale_fill_gradient(name = "Number of Observed Cases", 
+                      low = "blue", high = "red") +
+  scale_x_continuous(breaks = c(50, 60, 70, 80)) +
+  scale_y_continuous(limits = c(0, 80000), 
+                     breaks = c(0, 20000, 40000, 60000, 80000))+
+  theme(text = element_text(family = "serif"),
+        axis.text.x = element_text(size = "11"), 
+        axis.text.y = element_text(size = "11"),
+        axis.title.x = element_text(size = "15", face = "italic", family = "NimbusSan"),
+        axis.title.y = element_text(size = "15", face = "italic", family = "NimbusSan"), 
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold", size = "14", 
+                                  family = "NimbusSan"), 
+        plot.caption = element_text(face = "italic"),
+        panel.border = element_rect(colour = "black", fill=NA,
+                                    linewidth = "2"),
+        panel.background = element_rect(fill = "white"),
+        panel.spacing = unit(2, "lines"),
+        panel.grid.major = element_line(color = "grey"),
+        strip.text = element_text(face = "bold", 
+                                  family = "NimbusSan", size ="15"),
+        strip.background = element_rect(fill = "white")) +
+  labs(title = "Life Expectancy by Country with Observable Cases 2016-2021",
+       x = "Life Expectancy (at birth)", y = "Observable Cases",
+       caption = "Source: Unicef Indicator") +
+  guides(size = "none")
+
+ggplotly(scatter_plot_1, tooltip = c("text"))
+```
+
+The **majority** of examined countries possess a **Life Expectancy** between [**57 and 67 years of age**]{style="color:red;"}. **Most** of these countries number [**10,000**]{style="color:red;"} Observed Cases or **Less** with some as **low as Forty**. At lower levels of cases observed there seems to be **no direct correlation** with the level of**Life Expectancy**, however countries possessing a **high severity** of Cases are rooted firmly within the [**57-67 age bracket**]{style="color:red;"} illustrating that **High Volumes** of Observed Cases have a significant effect on a countries’ **Life Expectancy** even if it’s only one of a **number of contributing factors**.
+
+### ***How does GDP per Capita Influence the Number of Cases***
+
+```{r}
+#| fig-cap: "*The relationship between a country’s GDP and the number of Infants tested for HIV is explored in this graph. Low GDP can clearly be seen in countries with high volumes of observed cases however countries with low GDP can still exhibit lower number of cases.*"
+
+scatter_plot_2 <- filter(unicef_data, year > 2015, year < 2022, 
+                         obs_value > 0) %>%
+  ggplot(aes(GDP_per_cap, obs_value, 
+      fill = obs_value, size = pop_total, 
+      text = paste(country, "has a GDP per Capita of", 
+                   GDP_per_cap, "and", obs_value, "Observed Cases"))) +
+  geom_point(shape = 4, size = 5, alpha = 0.5) +
+  facet_wrap(~year) +
+  scale_fill_gradient(name = "Number of Observed Cases", 
+                      low = "blue", high = "red") +
+scale_x_continuous(labels = scales::unit_format(unit = "K", scale = 0.001)) +
+scale_y_continuous(limits = c(0, 80000), 
+                     breaks = c(0, 20000, 40000, 60000, 80000)) +
+  theme(text = element_text(family = "serif"),
+        axis.text.x = element_text(size = "11"), 
+        axis.text.y = element_text(size = "11"),
+        axis.title.x = element_text(size = "15", face = "italic", family = "NimbusSan"),
+        axis.title.y = element_text(size = "15", face = "italic", family = "NimbusSan"), 
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold", size = "14", 
+                                  family = "NimbusSan"), 
+        plot.caption = element_text(face = "italic"),
+        panel.border = element_rect(colour = "black", fill=NA,
+                                    linewidth = "2"),
+        panel.background = element_rect(fill = "white"),
+        panel.spacing = unit(2, "lines"),
+        panel.grid.major = element_line(color = "grey"),
+        strip.text = element_text(face = "bold", 
+                                  family = "NimbusSan", size ="15"),
+        strip.background = element_rect(fill = "white")) +
+  labs(title = "GDP per Capita by Country with Observable Cases 2016-2021",
+       x = "GDP per Capita", y = "Observed Cases",
+       caption = "Source: Unicef Indicator") +
+guides(size = "none")
+
+ggplotly(scatter_plot_2, tooltip = c("text"))
+
+```
+
+The second scatter plot examines the relationship between the **number** of Observed Cases in a country and its **GDP per capita**. As can be seen in the graph countries with **High** numbers of cases tend to have **low GDP** illustrating that a country’s **wealth and development level** have a **direct contributing factor** in the **volume** of cases. However, many of the countries examined in this report possess both **Low** numbers of Observed Cases and a **Low GDP score**. 
+
+The meaning here is clear, countries with **lower income** available have **less** to spend on developing important **medical and educational facilities**, stalling the ability to combat [**HIV**]{style="color:red;"} and **spread awareness** of the **risks**.
+
+### ***How does a Country’s GNI Influence the Number of Cases***
+
+```{r}
+#| fig-cap: "*This scatter plot examines whether a country’s GNI has any correlation with the number of Infants tested for HIV. As can be inferred from the plot low GNI can be considered to be a contributing factor, as countries’ experiencing high volumes of cases possess low GNI.*"
+
+scatter_plot_3 <- filter(unicef_data, year > 2015, year < 2022, 
+                         obs_value > 0) %>%
+  ggplot(aes(obs_value, GNI,
+             fill = obs_value, size = pop_total, 
+             text = paste(country, "has a GNI of", 
+                          GNI, "and", obs_value, "Observed Cases"))) +
+  geom_point(shape = 4, size = 5, alpha = 0.5) +
+  facet_wrap(~year) +
+  scale_fill_gradient(name = "Number of Observed Cases", 
+                      low = "blue", high = "red") +
+  theme(text = element_text(family = "serif"),
+        axis.text.x = element_text(size = "11"), 
+        axis.text.y = element_text(size = "11"),
+        axis.title.x = element_text(size = "15", face = "italic", family = "NimbusSan"),
+        axis.title.y = element_text(size = "15", face = "italic", family = "NimbusSan"), 
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold", size = "14", 
+                                  family = "NimbusSan"), 
+        plot.caption = element_text(face = "italic"),
+        panel.border = element_rect(colour = "black", fill=NA,
+                                    linewidth = "2"),
+        panel.background = element_rect(fill = "white"),
+        panel.spacing = unit(2, "lines"),
+        panel.grid.major = element_line(color = "grey"),
+        strip.text = element_text(face = "bold", 
+                                  family = "NimbusSan", size ="15"),
+        strip.background = element_rect(fill = "white")) +
+  labs(title = "GNI by Country with Observable Cases 2016-2021",
+       x = "Observed Cases", y = "GNI",
+       caption = "Source: Unicef Indicator") +
+guides(size = "none")
+
+ggplotly(scatter_plot_3, tooltip = c("text"))
+```
+
+```{r}
+scatter_plot_4 <- filter(unicef_data, year > 2015, year < 2022, 
+                         obs_value > 0, alpha_2_code != "ZA") %>%
+  ggplot(aes(obs_value, GNI,
+             fill = obs_value, size = pop_total, 
+             text = paste(country, "has a GNI of", 
+                          GNI, "and", obs_value, "Observed Cases"))) +
+  geom_point(shape = 4, size = 5, alpha = 0.5) +
+  facet_wrap(~year) +
+  scale_x_continuous(breaks = c(20000, 40000, 60000, 80000),labels = scales::unit_format(unit = "K", scale = 0.001)) +
+  scale_fill_gradient(name = "Number of Observed Cases", 
+                      low = "blue", high = "red") +
+  theme(text = element_text(family = "serif"),
+        axis.text.x = element_text(size = "11"), 
+        axis.text.y = element_text(size = "11"),
+        axis.title.x = element_text(size = "15", face = "italic", family = "NimbusSan"),
+        axis.title.y = element_text(size = "15", face = "italic", family = "NimbusSan"), 
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold", size = "12", 
+                                  family = "NimbusSan"), 
+        plot.caption = element_text(face = "italic"),
+        panel.border = element_rect(colour = "black", fill=NA,
+                                    linewidth = "2"),
+        panel.background = element_rect(fill = "white"),
+        panel.spacing = unit(2, "lines"),
+        panel.grid.major = element_line(color = "grey"),
+        strip.text = element_text(face = "bold", 
+                                  family = "NimbusSan", size ="15"),
+        strip.background = element_rect(fill = "white")) +
+  labs(title = "GNI by Country with Observable Cases 2016-2021 (Excluding South Africa)",
+       x = "Observed Cases", y = "GNI",
+       caption = "Source: Unicef Indicator") +
+guides(size = "none")
+
+ggplotly(scatter_plot_4, tooltip = c("text"))
+```
+
+The final scatter plots compares the **number of reported cases** in a country to a country’s total **GNI**. This aims to examine to what effect the **National Income** of a nation’s population has on the **severity of cases**. As can be seen in the graph countries with **High Case Volumes** tend towards **lower GNI** scores, furthering illustrating the **correlation** between a country’s **wealth and its number of cases**. It should be noted that many countries with **High GNI and Low GNI** both experience **low number of cases in equal measure**. 
+
+As can be seen in Scatter Plot 3 ***South Africa*** is a clear **outlier** possessing a **moderate GNI** with a significant volume of **Infants tested** which has **increased** over the examined period. Scatter Plot 4 **excludes** ***South Africa*** to provide a better view of other countries, illustrating an **increase in Observed Cases** in several ***African nations***.
+
+## **What is Being Done to Combat HIV**
+
+::: columns
+::: {.column width="60%"}
+[**HIV**]{style="color:red;"} testing is a **vital** step in **stopping the spread** of [**HIV**]{style="color:red;"}. Many countries have adopted ***WHO-recommended strategies*** for testing (Fajardo et al 2023) and with support from ***UNAIDS*** who provide vital **strategic direction, advocacy, coordination, and technical support**, governments around the world, the private sector, and communities can all work in tandem to provide accurate and affordable testing (UNAIDS 2024).
+
+:::
+
+::: {.column width="40%"}
+
+
+![](images/globalalliance.jpg)
+:::
+:::
+There has been several steps to combat [**HIV/AIdS**]{style="color:red;"} around the world. ***UNICEF*** has partnered with ***UNAIDS*** and the ***WHO*** to form a global alliance with the aim of eradicating [**HIV**]{style="color:red;"} in children by the year **2030**. This alliance was formed to due the **lack of support** received by **children** in comparison with **adults**. The **UNAIDS Global AIDS Update 2022** reports that only [**52%**]{style="color:red;"} of children living with [**HIV**]{style="color:red;"} receive the **vital life-saving medication**, while [**76%**]{style="color:red;"} of infected **adults** are receiving **antiretrovirals** (UNAIDS 2022). 
+
+A number of ***African States*** including ***South Africa*** and ***Mozambique*** have joined the initiative alongside other key organisations including the ***Global Network of People Living with HIV***, ***The United States President’s Emergency Plan For AIDS Relief (PEPFAR)*** and the ***Global Fund*** (Healthcare MEA 2022). This alliance will allow the sharing of key **resources, strategies, and data needed to inform and education** people of the risks of [**HIV**]{style="color:red;"} and provide proper care for preventing and treating [**HIV**]{style="color:red;"}. ***Catherine Russel***, the Executive Director of ***UNICEF*** discusses the alliance in the video below.
+
+{{< video https://www.youtube.com/embed/sdT-tMXc6cA?si=ePZHnT8cB2RgSGeZ
+    title=" Catherine Russel, Executive Director of ***UNICEF*** on the Global Alliance”
+    aspect-ratio="21x9" >}}
+    
+## **Conclusion**
+
+The following ***determinations*** can be made from the examined graphs, ***South Africa*** tends to possess the **highest annual** recorded number of cases illustrating the clear need for further support for people suffering from HIV. On an annual basis, ***Swaziland*** and ***South Africa*** rank among the countries with the **highest percentage** of cases compared to **total populace** (in terms of infants tested for HIV) though there are years where this vary somewhat.
+
+Additionally, the **majority** of cases lie within the continent of ***Africa***, with key factors influencing the spread and volume of HIV including a lack of proper medical and education facilities, poverty, and political factors while a country’s **Wealth and Level of Development** has a **direct influence** on the number of observed cases. **High Volumes** of cases tend to occur in nations with **lower GNI** but there are exceptions such as ***South Africa***, and often lead countries to experience middling **Life Expectancy**. There is however hope as local and international government and political bodies work with leading health groups such as the ***WHO*** and the private sector to combat the spread of [**HIV**]{style="color:red;"} as can be seen with the **Global Alliance**.
+
+## **Bibliography** 
+- Fajardo E, Lastrucci C, Bah N, Mingiedi CM, Ba NS, Mosha F, Lule FJ, Paul MAS, Hughes L, Barr-DiChiara M, Jamil MS, Sands A, Baggaley R, Johnson C. (2023) *Country adoption of WHO 2019 guidance on HIV testing strategies and algorithms: a policy review across the WHO African region.* BMJ Open. 2023 Dec 28;13(12):e071198. doi: 10.1136/bmjopen-2022-071198. PMID: 38154882; PMCID: PMC10759095. Available at: [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10759095/.]( https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10759095/)
+- Healthcare MEA (2022) *UNAIDS, UNICEF, WHO launch global alliance to eradicate AIDS in children by 2030.* Healthcare Middle East & Africa. Available at: [https://www.healthcaremea.com/unaids-unicef-who-and-partners-form-alliance-to-eradicate-aids-in-children-by-2030/.](https://www.healthcaremea.com/unaids-unicef-who-and-partners-form-alliance-to-eradicate-aids-in-children-by-2030/)
+- Nyindo, M. (2005) *Complementary Factors Contributing To The Rapid Spread Of HIV-I In Sub-Saharan Africa: A Review.* East African Medical Journal/ Vol. 82 No. 1 (2005). Available at: [https://www.ajol.info/index.php/eamj/article/view/9293.]( https://www.ajol.info/index.php/eamj/article/view/9293)
+- UNAIDS (2022) *UNAIDS Global AIDS Update 2022.* Joint United Nations Programme on HIV/AIDS (UNAIDS). Available at: [https://www.unaids.org/sites/default/files/media_asset/2022-global-aids-update_en.pdf.](https://www.unaids.org/sites/default/files/media_asset/2022-global-aids-update_en.pdf)
+- UNAIDS About (2024) *Saving lives, leaving no one behind.* UNAIDS Available at: [https://www.unaids.org/en/whoweare/about.](https://www.unaids.org/en/whoweare/about)
